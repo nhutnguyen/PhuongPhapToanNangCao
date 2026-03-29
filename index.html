@@ -1,2 +1,303 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { Info, BarChart2, Brain, Database, BookOpen, Sigma, Target } from 'lucide-react';
 
-<iframe allow="xr-spatial-tracking; web-share" sandbox="allow-pointer-lock allow-popups allow-forms allow-popups-to-escape-sandbox allow-downloads allow-scripts allow-same-origin" src="https://1fmbke7o0fk2lhc8m7sh0wpjgsay48tuq6oiqk7z3vpa99aa7h-h885037681.scf.usercontent.goog/gemini-code-immersive/shim.html?origin=https%3A%2F%2Fgemini.google.com&amp;cache=1"></iframe>
+const App = () => {
+  const [heads, setHeads] = useState(7);
+  const [tails, setTails] = useState(3);
+  const [priorAlpha, setPriorAlpha] = useState(2); // Niềm tin ban đầu: alpha
+  const [priorBeta, setPriorBeta] = useState(2);  // Niềm tin ban đầu: beta
+
+  // Hàm tính Beta Distribution (PDF) cho visualization
+  const getBetaPDF = (alpha, beta, x) => {
+    // Xấp xỉ hàm Beta: x^(a-1) * (1-x)^(b-1)
+    if (x === 0 && alpha === 1) return 1;
+    if (x === 1 && beta === 1) return 1;
+    return Math.pow(x, alpha - 1) * Math.pow(1 - x, beta - 1);
+  };
+
+  const data = useMemo(() => {
+    const points = [];
+    const n = heads + tails;
+    
+    // Posterior parameters cho Beta distribution (Conjugate Prior)
+    const postAlpha = heads + priorAlpha;
+    const postBeta = tails + priorBeta;
+
+    for (let x = 0; x <= 1; x += 0.01) {
+      const priorVal = getBetaPDF(priorAlpha, priorBeta, x);
+      const postVal = getBetaPDF(postAlpha, postBeta, x);
+
+      points.push({
+        x: parseFloat(x.toFixed(2)),
+        prior: priorVal,
+        posterior: postVal
+      });
+    }
+
+    // Chuẩn hóa để hiển thị tốt trên UI
+    const maxPost = Math.max(...points.map(p => p.posterior));
+    const maxPrior = Math.max(...points.map(p => p.prior));
+    
+    return points.map(p => ({
+      ...p,
+      prior: (p.prior / (maxPrior || 1)) * 100,
+      posterior: (p.posterior / (maxPost || 1)) * 100,
+    }));
+  }, [heads, tails, priorAlpha, priorBeta]);
+
+  const mleEstimate = (heads + tails > 0) ? (heads / (heads + tails)).toFixed(3) : "0.000";
+  const mapDenominator = (heads + tails + priorAlpha + priorBeta - 2);
+  const mapEstimate = mapDenominator > 0 
+    ? ((heads + priorAlpha - 1) / mapDenominator).toFixed(3) 
+    : "0.500";
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans p-4 md:p-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <header className="mb-12 text-center">
+          <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-900 to-blue-600 mb-4">
+            MLE, MAP & Bayesian Approach
+          </h1>
+          <p className="text-xl text-slate-600 max-w-3xl mx-auto">
+            Tìm hiểu nền tảng toán học đằng sau việc ước lượng tham số trong thống kê hiện đại.
+          </p>
+        </header>
+
+        {/* Section 1: Interactive Lab */}
+        <section className="bg-white rounded-3xl shadow-2xl p-8 mb-12 border border-slate-100">
+          <div className="flex items-center mb-8">
+            <div className="p-3 bg-indigo-100 rounded-xl mr-4">
+              <Target className="text-indigo-600" size={28} />
+            </div>
+            <h2 className="text-3xl font-bold text-slate-800">Phòng thí nghiệm Tương tác</h2>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            {/* Controls */}
+            <div className="space-y-10">
+              <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                <h3 className="flex items-center text-lg font-bold mb-4 text-indigo-700">
+                  <Database className="mr-2" size={20} /> Dữ liệu (Likelihood)
+                </h3>
+                <div className="space-y-6">
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <label className="text-sm font-semibold text-slate-700">Mặt Sấp (Heads)</label>
+                      <span className="text-indigo-600 font-bold">{heads}</span>
+                    </div>
+                    <input 
+                      type="range" min="0" max="100" value={heads} 
+                      onChange={(e) => setHeads(parseInt(e.target.value))}
+                      className="w-full h-2 bg-indigo-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <label className="text-sm font-semibold text-slate-700">Mặt Ngửa (Tails)</label>
+                      <span className="text-indigo-600 font-bold">{tails}</span>
+                    </div>
+                    <input 
+                      type="range" min="0" max="100" value={tails} 
+                      onChange={(e) => setTails(parseInt(e.target.value))}
+                      className="w-full h-2 bg-indigo-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                <h3 className="flex items-center text-lg font-bold mb-4 text-emerald-700">
+                  <Brain className="mr-2" size={20} /> Niềm tin (Prior)
+                </h3>
+                <div className="space-y-6">
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <label className="text-sm font-semibold text-slate-700">Alpha (α)</label>
+                      <span className="text-emerald-600 font-bold">{priorAlpha}</span>
+                    </div>
+                    <input 
+                      type="range" min="1" max="50" value={priorAlpha} 
+                      onChange={(e) => setPriorAlpha(parseInt(e.target.value))}
+                      className="w-full h-2 bg-emerald-100 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <label className="text-sm font-semibold text-slate-700">Beta (β)</label>
+                      <span className="text-emerald-600 font-bold">{priorBeta}</span>
+                    </div>
+                    <input 
+                      type="range" min="1" max="50" value={priorBeta} 
+                      onChange={(e) => setPriorBeta(parseInt(e.target.value))}
+                      className="w-full h-2 bg-emerald-100 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Visualization */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="h-96 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={data}>
+                    <defs>
+                      <linearGradient id="colorPrior" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorPost" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.6}/>
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0.1}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis 
+                      dataKey="x" 
+                      label={{ value: 'Tham số θ (Xác suất sấp)', position: 'insideBottom', offset: -10 }} 
+                      ticks={[0, 0.2, 0.4, 0.5, 0.6, 0.8, 1]}
+                    />
+                    <YAxis hide domain={[0, 100]} />
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                      formatter={(value, name) => [value.toFixed(1) + '%', name === 'prior' ? 'Độ tin cậy ban đầu' : 'Độ tin cậy sau quan sát']}
+                    />
+                    <Area type="monotone" dataKey="prior" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorPrior)" name="prior" />
+                    <Area type="monotone" dataKey="posterior" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorPost)" name="posterior" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-orange-50 p-4 rounded-xl border border-orange-100">
+                  <div className="text-xs text-orange-600 font-bold uppercase tracking-wider mb-1">MLE Estimate</div>
+                  <div className="text-2xl font-black text-orange-700">{mleEstimate}</div>
+                </div>
+                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                  <div className="text-xs text-blue-600 font-bold uppercase tracking-wider mb-1">MAP Estimate</div>
+                  <div className="text-2xl font-black text-blue-700">{mapEstimate}</div>
+                </div>
+                <div className="col-span-2 flex items-center justify-end gap-6 text-sm px-4">
+                  <span className="flex items-center"><div className="w-3 h-3 bg-emerald-500 rounded-full mr-2"></div> Prior (Trước)</span>
+                  <span className="flex items-center"><div className="w-3 h-3 bg-indigo-500 rounded-full mr-2"></div> Posterior (Sau)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Section 2: Core Theory */}
+        <div className="space-y-12 mb-20">
+          <div className="flex items-center mb-8">
+            <div className="p-3 bg-blue-100 rounded-xl mr-4">
+              <BookOpen className="text-blue-600" size={28} />
+            </div>
+            <h2 className="text-3xl font-bold text-slate-800">Cơ sở Lý thuyết Toàn diện</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Bayes Theorem Card */}
+            <div className="bg-slate-900 text-white p-8 rounded-3xl shadow-lg relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-8 opacity-10">
+                <Sigma size={120} />
+              </div>
+              <h3 className="text-2xl font-bold mb-6 text-blue-400">1. Định lý Bayes</h3>
+              <p className="mb-6 text-slate-300 leading-relaxed">
+                Nền tảng của thống kê Bayes là cách chúng ta cập nhật kiến thức dựa trên bằng chứng mới.
+              </p>
+              <div className="bg-white/10 p-6 rounded-2xl backdrop-blur-sm border border-white/20 mb-6">
+                <div className="text-xl text-center font-serif tracking-widest">
+                  P(θ | D) = <span className="text-blue-400">P(D | θ)</span> × <span className="text-emerald-400">P(θ)</span> / P(D)
+                </div>
+              </div>
+              <ul className="space-y-3 text-sm">
+                <li><span className="text-blue-400 font-bold">P(D | θ) (Likelihood):</span> Xác suất quan sát thấy dữ liệu nếu tham số là θ.</li>
+                <li><span className="text-emerald-400 font-bold">P(θ) (Prior):</span> Những gì ta biết về θ trước khi có dữ liệu.</li>
+                <li><span className="text-slate-400 font-bold">P(D) (Evidence):</span> Thành phần chuẩn hóa giúp tổng xác suất bằng 1.</li>
+                <li><span className="font-bold text-white">P(θ | D) (Posterior):</span> Kiến thức mới về θ sau khi đã xem dữ liệu.</li>
+              </ul>
+            </div>
+
+            {/* Conjugate Prior Explanation */}
+            <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
+              <h3 className="text-2xl font-bold mb-4 text-slate-800 flex items-center">
+                <Info className="mr-2 text-blue-500" /> Mô hình Beta-Binomial
+              </h3>
+              <p className="text-slate-600 mb-6 italic">
+                Ví dụ tung đồng xu sử dụng phân phối nhị thức (Binomial) kết hợp với Prior Beta - một "Conjugate Prior".
+              </p>
+              <div className="space-y-4">
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                  <h4 className="font-bold text-sm text-slate-500 uppercase">Binomial Likelihood</h4>
+                  <p className="text-lg">L(θ) = θ<sup>h</sup>(1-θ)<sup>t</sup></p>
+                </div>
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                  <h4 className="font-bold text-sm text-slate-500 uppercase">Beta Prior</h4>
+                  <p className="text-lg">P(θ) ∝ θ<sup>α-1</sup>(1-θ)<sup>β-1</sup></p>
+                </div>
+                <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                  <h4 className="font-bold text-sm text-indigo-500 uppercase">Beta Posterior</h4>
+                  <p className="text-lg font-bold">P(θ|D) ∝ θ<sup>h+α-1</sup>(1-θ)<sup>t+β-1</sup></p>
+                  <p className="text-xs text-indigo-400 mt-2">Công thức này giải thích tại sao Posterior vẫn là phân phối Beta với tham số mới: α' = h+α và β' = t+β.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Detailed Method Comparison */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-white p-8 rounded-3xl shadow-md border-b-4 border-orange-500">
+              <div className="text-orange-600 mb-4 font-black">MLE</div>
+              <h4 className="text-xl font-bold mb-4">Ước lượng Hợp lý Cực đại</h4>
+              <div className="text-sm text-slate-600 space-y-4">
+                <p>Tìm θ để tối đa hóa xác suất xảy ra của dữ liệu hiện tại.</p>
+                <div className="bg-slate-50 p-3 rounded font-mono text-xs">
+                  θ̂_MLE = h / (h + t)
+                </div>
+                <p className="bg-orange-50 p-3 rounded-lg text-xs border border-orange-100">
+                  <strong>Ưu điểm:</strong> Đơn giản, không cần giả định về niềm tin cũ.<br/>
+                  <strong>Nhược điểm:</strong> Rất nhạy cảm với mẫu nhỏ (Ví dụ: 3 lần sấp liên tiếp sẽ cho ra θ=1).
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white p-8 rounded-3xl shadow-md border-b-4 border-blue-500">
+              <div className="text-blue-600 mb-4 font-black">MAP</div>
+              <h4 className="text-xl font-bold mb-4">Hậu nghiệm Cực đại</h4>
+              <div className="text-sm text-slate-600 space-y-4">
+                <p>Tìm θ là điểm đỉnh của phân phối hậu nghiệm. Kết hợp Likelihood và Prior.</p>
+                <div className="bg-slate-50 p-3 rounded font-mono text-xs">
+                  θ̂_MAP = (h + α - 1) / (h + t + α + β - 2)
+                </div>
+                <p className="bg-blue-50 p-3 rounded-lg text-xs border border-blue-100">
+                  <strong>Cơ chế:</strong> Prior đóng vai trò như các "quan sát ảo". Nếu α=β=2, ta coi như đã thấy 1 sấp 1 ngửa trước khi bắt đầu.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white p-8 rounded-3xl shadow-md border-b-4 border-indigo-600">
+              <div className="text-indigo-600 mb-4 font-black">BAYESIAN</div>
+              <h4 className="text-xl font-bold mb-4">Tiếp cận Bayes Toàn phần</h4>
+              <div className="text-sm text-slate-600 space-y-4">
+                <p>Không chỉ tìm 1 điểm, mà mô tả sự bất định thông qua toàn bộ đường cong Posterior.</p>
+                <div className="bg-slate-50 p-3 rounded font-mono text-xs">
+                  Expectation: E[θ] = (h+α) / (h+t+α+β)
+                </div>
+                <p className="bg-indigo-50 p-3 rounded-lg text-xs border border-indigo-100">
+                  <strong>Sức mạnh:</strong> Cho phép tính toán khoảng tin cậy (Credible Interval) và dự báo xác suất một cách đầy đủ nhất.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <footer className="mt-12 text-center text-slate-400 text-sm pb-12">
+          <p>© 2024 Nền tảng Học tập Thống kê - Dành cho Kỹ sư AI và Khoa học Dữ liệu</p>
+        </footer>
+      </div>
+    </div>
+  );
+};
+
+export default App;
