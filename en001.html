@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flashcards - Collocations</title>
+<style>
+  :root {
+    --bg: #f4f3ee;
+    --card-front: #ffffff;
+    --card-back: #2b2b2b;
+    --accent: #c9a961;
+    --text-dark: #2b2b2b;
+    --text-light: #f4f3ee;
+    --muted: #8a8a8a;
+    --green: #4a7c59;
+    --red: #b5533c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text-dark);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 60px;
+  }
+  h1 {
+    font-size: 1.4rem;
+    margin: 8px 0 2px;
+    letter-spacing: 0.5px;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+  }
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 560px;
+    margin-bottom: 12px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .progress-bar-track {
+    width: 100%;
+    max-width: 560px;
+    height: 6px;
+    background: #e2e0d6;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.3s ease;
+  }
+  .card-scene {
+    width: 100%;
+    max-width: 560px;
+    height: 340px;
+    perspective: 1400px;
+    margin-bottom: 20px;
+  }
+  .card {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.5s cubic-bezier(.4,.2,.2,1);
+    cursor: pointer;
+  }
+  .card.flipped {
+    transform: rotateY(180deg);
+  }
+  .face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 28px;
+    text-align: center;
+  }
+  .face-front {
+    background: var(--card-front);
+    border: 1px solid #e2e0d6;
+  }
+  .face-back {
+    background: var(--card-back);
+    color: var(--text-light);
+    transform: rotateY(180deg);
+  }
+  .tag {
+    position: absolute;
+    top: 16px;
+    left: 18px;
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .phrase {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 14px;
+    line-height: 1.3;
+  }
+  .hint {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-top: 18px;
+  }
+  .meaning {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+  .example {
+    font-size: 0.98rem;
+    line-height: 1.5;
+    color: #d8d6cd;
+    font-style: italic;
+  }
+  .controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    max-width: 560px;
+    width: 100%;
+  }
+  button {
+    font-family: inherit;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 18px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+  button:active { transform: scale(0.96); }
+  .btn-nav {
+    background: #e2e0d6;
+    color: var(--text-dark);
+  }
+  .btn-nav:hover { background: #d5d2c4; }
+  .btn-know {
+    background: var(--green);
+    color: white;
+  }
+  .btn-again {
+    background: var(--red);
+    color: white;
+  }
+  .btn-shuffle {
+    background: var(--card-back);
+    color: var(--text-light);
+  }
+  .row2 {
+    display: flex;
+    gap: 12px;
+    margin-top: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  .stats {
+    display: flex;
+    gap: 18px;
+    margin-top: 22px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .stats span b {
+    color: var(--text-dark);
+  }
+  .stats .known b { color: var(--green); }
+  .stats .again b { color: var(--red); }
+  .footer-note {
+    margin-top: 28px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-align: center;
+    max-width: 480px;
+  }
+  .done-screen {
+    text-align: center;
+    padding: 40px 20px;
+  }
+  .done-screen h2 { margin-bottom: 8px; }
+  @media (max-width: 480px) {
+    .card-scene { height: 380px; }
+    .phrase { font-size: 1.25rem; }
+    .meaning { font-size: 1.35rem; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Collocations Flashcards</h1>
+<div class="subtitle">Nhấn vào thẻ để lật &middot; 30 cụm từ</div>
+
+<div class="top-bar">
+  <span id="counter">1 / 30</span>
+  <span id="modeLabel">Chế độ: Tất cả</span>
+</div>
+<div class="progress-bar-track">
+  <div class="progress-bar-fill" id="progressFill" style="width: 3.3%;"></div>
+</div>
+
+<div class="card-scene">
+  <div class="card" id="card">
+    <div class="face face-front">
+      <div class="tag">Tiếng Anh</div>
+      <div class="phrase" id="frontPhrase"></div>
+      <div class="hint">Nhấn để xem nghĩa &amp; ví dụ</div>
+    </div>
+    <div class="face face-back">
+      <div class="tag">Nghĩa &amp; Ví dụ</div>
+      <div class="meaning" id="backMeaning"></div>
+      <div class="example" id="backExample"></div>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn-nav" id="prevBtn">&larr; Trước</button>
+  <button class="btn-again" id="againBtn">Chưa thuộc</button>
+  <button class="btn-know" id="knowBtn">Đã thuộc</button>
+  <button class="btn-nav" id="nextBtn">Tiếp &rarr;</button>
+</div>
+<div class="row2">
+  <button class="btn-shuffle" id="shuffleBtn">🔀 Trộn thẻ</button>
+  <button class="btn-nav" id="resetBtn">Đặt lại tiến độ</button>
+</div>
+
+<div class="stats">
+  <span class="known">Đã thuộc: <b id="knownCount">0</b></span>
+  <span class="again">Chưa thuộc: <b id="againCount">0</b></span>
+  <span>Chưa xem: <b id="untestedCount">30</b></span>
+</div>
+
+<div class="footer-note">Mẹo: dùng phím ← → để chuyển thẻ, phím cách hoặc Enter để lật thẻ.</div>
+
+<script>
+const data = [
+  {en:"play a crucial role in sth / doing sth", vi:"đóng vai trò quan trọng", ex:"Higher education plays a crucial role in determining the success of students' future career."},
+  {en:"take steps to do sth", vi:"bắt tay hành động / làm gì", ex:"We should take steps to recycle waste materials to protect the environment."},
+  {en:"make a decision to do sth", vi:"quyết định làm gì", ex:"I finally made a decision to participate in the singing contest."},
+  {en:"make a contribution to sth / doing sth", vi:"đóng góp làm gì", ex:"He made a great contribution to the company's growth."},
+  {en:"take / seize an opportunity to do sth", vi:"nắm bắt cơ hội để làm gì", ex:"We would like to take this opportunity to thank him for his support."},
+  {en:"thank sb for sth", vi:"cám ơn ai về điều gì", ex:"I sincerely thank my supervisor for his wholehearted support."},
+  {en:"get along with sb", vi:"hòa thuận với ai / có mối quan hệ tốt đẹp với ai", ex:"I don't usually get along with my brothers and sisters."},
+  {en:"find a solution to a problem", vi:"tìm giải pháp cho một vấn đề", ex:"It takes quite a long time for the government to find an effective solution to the environmental problem in the city."},
+  {en:"be good / strong / brilliant at", vi:"giỏi, thạo cái gì", ex:"My younger brother is brilliant at playing chess. I don't think I am good at math, but it is my favorite subject."},
+  {en:"be bad / weak at sth", vi:"dở, tệ cái gì", ex:"I am bad at drawing. I am weak at pronouncing English words."},
+  {en:"be interested in / keen on / engrossed in sth", vi:"thích cái gì", ex:"I am keen on singing and dancing. She is engrossed in reading novels."},
+  {en:"be averse to sth", vi:"ghét cái gì", ex:"I am averse to insects and reptiles."},
+  {en:"make an effort / attempt to do sth", vi:"nỗ lực làm gì", ex:"The final exam is coming, so I have to make more efforts to pass it with flying colours."},
+  {en:"do / try one's best to do sth", vi:"nỗ lực hết mình làm gì", ex:"We have to try our best to complete this project before this Friday."},
+  {en:"stand a chance of doing sth", vi:"có khả năng làm gì / giành gì đó", ex:"He stood a strong chance of winning the first prize in the IT contest for the secondary students."},
+  {en:"have a good (beneficial / positive) effect on sb/sth", vi:"ảnh hưởng tích cực đến ai / cái gì", ex:"Reading has a positive effect on your way of thinking."},
+  {en:"have a bad (negative / detrimental / harmful) effect on sb/sth", vi:"ảnh hưởng tiêu cực đến ai / cái gì", ex:"Smoking has a detrimental effect on your health."},
+  {en:"meet (fulfil / satisfy) one's requirement", vi:"đáp ứng / thỏa mãn nhu cầu của ai", ex:"Our company planned to offer staff training to meet customers' requirement for high quality services."},
+  {en:"meet the standard on sth", vi:"đáp ứng tiêu chuẩn về cái gì", ex:"Much produce in the domestic market failed to meet the European standards on health safety."},
+  {en:"weigh up the pros and cons", vi:"xem xét / cân nhắc về thuận lợi và bất lợi", ex:"Before making a final decision, we should weigh up the pros and cons."},
+  {en:"boost one's confidence", vi:"tăng sự tự tin", ex:"The teacher's encouragement helps boost my confidence in learning English."},
+  {en:"dent one's confidence", vi:"làm giảm / mất đi sự tự tin", ex:"His criticism dented my confidence."},
+  {en:"boost the local economy", vi:"thúc đẩy nền kinh tế địa phương", ex:"The construction of new hotels and resorts is believed to boost the local economy."},
+  {en:"slow down / stunt the local economy", vi:"làm trì trệ nền kinh tế", ex:"The COVID-19 pandemic stunted the world economy, making millions of people unemployed."},
+  {en:"stimulate one's imagination / creativity", vi:"kích thích trí tưởng tượng", ex:"The teachers' classroom tasks help stimulate his student's imagination."},
+  {en:"stifle one's imagination / creativity", vi:"kìm hãm sự sáng tạo", ex:"Sample essays stifle school children's creativity."},
+  {en:"help sb do sth (= assist sb in doing sth)", vi:"giúp ai làm gì", ex:"On weekends, I usually help my mom do household chores."},
+  {en:"eradicate illiteracy", vi:"xóa mù chữ", ex:"The Vietnamese government has attempted to eradicate illiteracy across the nation."},
+  {en:"alleviate poverty", vi:"giảm nghèo", ex:"Alleviating poverty is the local government's top priority now."},
+  {en:"spend + time/money + doing sth", vi:"dành (thời gian/tiền) để làm gì", ex:"I spend much of my free time reading books and listening to music. I usually spend one million dong each month buying new clothes."}
+];
+
+let order = data.map((_, i) => i);
+let pos = 0;
+let flipped = false;
+let status = new Array(data.length).fill(null); // null, 'know', 'again'
+
+const card = document.getElementById('card');
+const frontPhrase = document.getElementById('frontPhrase');
+const backMeaning = document.getElementById('backMeaning');
+const backExample = document.getElementById('backExample');
+const counter = document.getElementById('counter');
+const progressFill = document.getElementById('progressFill');
+const knownCount = document.getElementById('knownCount');
+const againCount = document.getElementById('againCount');
+const untestedCount = document.getElementById('untestedCount');
+
+function render() {
+  const idx = order[pos];
+  const item = data[idx];
+  frontPhrase.textContent = item.en;
+  backMeaning.textContent = item.vi;
+  backExample.textContent = item.ex;
+  flipped = false;
+  card.classList.remove('flipped');
+  counter.textContent = `${pos + 1} / ${data.length}`;
+  progressFill.style.width = `${((pos + 1) / data.length) * 100}%`;
+  updateStats();
+}
+
+function updateStats() {
+  const known = status.filter(s => s === 'know').length;
+  const again = status.filter(s => s === 'again').length;
+  knownCount.textContent = known;
+  againCount.textContent = again;
+  untestedCount.textContent = data.length - known - again;
+}
+
+function flip() {
+  flipped = !flipped;
+  card.classList.toggle('flipped', flipped);
+}
+
+function next() {
+  pos = (pos + 1) % order.length;
+  render();
+}
+
+function prev() {
+  pos = (pos - 1 + order.length) % order.length;
+  render();
+}
+
+function mark(result) {
+  const idx = order[pos];
+  status[idx] = result;
+  updateStats();
+  next();
+}
+
+function shuffle() {
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  pos = 0;
+  render();
+}
+
+function reset() {
+  status = new Array(data.length).fill(null);
+  updateStats();
+}
+
+card.addEventListener('click', flip);
+document.getElementById('nextBtn').addEventListener('click', next);
+document.getElementById('prevBtn').addEventListener('click', prev);
+document.getElementById('knowBtn').addEventListener('click', () => mark('know'));
+document.getElementById('againBtn').addEventListener('click', () => mark('again'));
+document.getElementById('shuffleBtn').addEventListener('click', shuffle);
+document.getElementById('resetBtn').addEventListener('click', reset);
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight') next();
+  else if (e.key === 'ArrowLeft') prev();
+  else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flip(); }
+});
+
+render();
+</script>
+</body>
+</html>
